@@ -9,7 +9,7 @@ Warning: the code is almost entirely AI-generated.
 
 ## Scripts
 
-`solver.py`: generate solutions into `solutions.jsonl`; viewers use these solutions
-`viewer_interactive.py`: display one solution, and click any tile to tile it and zoom in
-`viewer_autozoom.py`: infinitely zoom in on recursive tilings
-`viewer_fractal.py`: display two or more levels of the fractal at once
+- `solver.py`: generate solutions into `solutions.jsonl`; viewers use these solutions
+- `viewer_interactive.py`: display one solution, and click any tile to tile it and zoom in
+- `viewer_autozoom.py`: infinitely zoom in on recursive tilings
+- `viewer_fractal.py`: display two or more levels of the fractal at once
