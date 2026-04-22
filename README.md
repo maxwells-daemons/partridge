@@ -5,6 +5,8 @@ This puzzle is a tiling of one big square by many smaller square tiles; this cod
 
 Warning: the code is almost entirely AI-generated.
 
+![Partridge fractal at depth 2](screenshot.png)
+
 ## Scripts
 
 `solver.py`: generate solutions into `solutions.jsonl`; viewers use these solutions
