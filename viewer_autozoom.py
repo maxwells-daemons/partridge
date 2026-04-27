@@ -31,8 +31,8 @@ from viewer_interactive import (
 
 
 # Total zoom factor per cycle is `side` (we go from the whole square down to
-# the 1x1 tile). At 0.8s that's ~45x per second — a brisk but legible zoom.
-ZOOM_DURATION = 0.8
+# the 1x1 tile). At 1.2s the zoom is slower and easier to follow.
+ZOOM_DURATION = 5.0
 
 
 def _rot90(pl: list[list[int]], side: int) -> list[list[int]]:
@@ -70,7 +70,12 @@ def expand_symmetries(sols: list[list[list[int]]], n: int) -> list[list[list[int
 DWELL_SECONDS = 0.05
 
 
-def run(solutions: list[list[list[int]]], n: int, seed: int | None) -> None:
+def run(
+    solutions: list[list[list[int]]],
+    n: int,
+    seed: int | None,
+    animated_tiles: bool,
+) -> None:
     pygame.init()
     pygame.display.set_caption(f"Partridge auto N={n}")
     screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
@@ -151,7 +156,17 @@ def run(solutions: list[list[list[int]]], n: int, seed: int | None) -> None:
                         paused = False
                         pause_began = None
 
-        render(screen, current_pl, anim, viewport, n, side, hover_idx=None)
+        render(
+            screen,
+            current_pl,
+            anim,
+            viewport,
+            n,
+            side,
+            hover_idx=None,
+            progress=t_clamped,
+            animated_tiles=animated_tiles,
+        )
         screen.blit(grid_overlay, (0, 0))
         pygame.display.flip()
         clock.tick(60)
@@ -164,6 +179,13 @@ def main() -> None:
     p.add_argument("-n", "--size", type=int, default=8)
     p.add_argument("-s", "--solutions", default="solutions.jsonl")
     p.add_argument("--seed", type=int, default=None)
+    p.add_argument(
+        "--no-animated-tiles",
+        dest="animated_tiles",
+        action="store_false",
+        default=True,
+        help="Disable progressive tile appearance during zooms.",
+    )
     args = p.parse_args()
 
     path = Path(args.solutions)
@@ -178,7 +200,7 @@ def main() -> None:
     sols = expand_symmetries(sols, args.size)
     print(f"Loaded {len(sols)} tilings (including symmetries)", file=sys.stderr)
 
-    run(sols, args.size, args.seed)
+    run(sols, args.size, args.seed, args.animated_tiles)
 
 
 if __name__ == "__main__":

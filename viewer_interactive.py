@@ -40,7 +40,7 @@ TOL_MUTED = (
 
 WINDOW_SIZE = 800
 BG_COLOR = (20, 20, 24)
-ZOOM_DURATION = 0.35  # seconds
+ZOOM_DURATION = 4  # seconds
 
 
 # ---------- colors ----------
@@ -117,6 +117,8 @@ def render(
     n: int,
     side: int,
     hover_idx: int | None,
+    progress: float = 1.0,
+    animated_tiles: bool = True,
 ) -> None:
     vx, vy, vs = viewport
     screen_scale = WINDOW_SIZE / vs
@@ -132,20 +134,32 @@ def render(
         # tiles the (c, r, k) cell exactly, so it fully covers the parent.
         if anim is not None and idx == anim.target_idx:
             sub_scale = k / side
-            for k2, r2, c2 in anim.next_pl:
-                _draw_tile(
-                    screen,
-                    c + c2 * sub_scale, r + r2 * sub_scale, k2 * sub_scale,
-                    vx, vy, vs, screen_scale,
-                    tile_color(k2, n),
-                    highlight=False,
-                )
+            if animated_tiles:
+                sorted_sub = sorted(anim.next_pl, key=lambda x: x[0], reverse=True)
+                num_to_draw = int(progress * len(sorted_sub))
+                for k2, r2, c2 in sorted_sub[:num_to_draw]:
+                    _draw_tile(
+                        screen,
+                        c + c2 * sub_scale, r + r2 * sub_scale, k2 * sub_scale,
+                        vx, vy, vs, screen_scale,
+                        tile_color(k2, n),
+                        highlight=False,
+                    )
+            else:
+                for k2, r2, c2 in anim.next_pl:
+                    _draw_tile(
+                        screen,
+                        c + c2 * sub_scale, r + r2 * sub_scale, k2 * sub_scale,
+                        vx, vy, vs, screen_scale,
+                        tile_color(k2, n),
+                        highlight=False,
+                    )
 
 
 # ---------- main loop ----------
 
 
-def run(solutions: list[list[list[int]]], n: int) -> None:
+def run(solutions: list[list[list[int]]], n: int, animated_tiles: bool) -> None:
     pygame.init()
     pygame.display.set_caption(f"Partridge N={n}")
     screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
@@ -198,12 +212,15 @@ def run(solutions: list[list[list[int]]], n: int) -> None:
             if t >= 1.0:
                 finish_zoom()
                 viewport = (0.0, 0.0, float(side))
+                progress = 1.0
             else:
                 e = _ease(t)
                 k, r, c = current_pl[anim.target_idx]
                 viewport = (c * e, r * e, side + (k - side) * e)
+                progress = t
         else:
             viewport = (0.0, 0.0, float(side))
+            progress = 1.0
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -228,7 +245,17 @@ def run(solutions: list[list[list[int]]], n: int) -> None:
                 if idx is not None:
                     start_zoom(idx)
 
-        render(screen, current_pl, anim, viewport, n, side, hover_idx)
+        render(
+            screen,
+            current_pl,
+            anim,
+            viewport,
+            n,
+            side,
+            hover_idx,
+            progress,
+            animated_tiles,
+        )
         screen.blit(grid_overlay, (0, 0))
         pygame.display.flip()
         clock.tick(60)
@@ -245,6 +272,13 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("-n", "--size", type=int, default=8)
     p.add_argument("-s", "--solutions", default="solutions.jsonl")
+    p.add_argument(
+        "--no-animated-tiles",
+        dest="animated_tiles",
+        action="store_false",
+        default=True,
+        help="Disable progressive tile appearance during zooms.",
+    )
     args = p.parse_args()
 
     path = Path(args.solutions)
@@ -260,7 +294,7 @@ def main() -> None:
         )
         sys.exit(1)
 
-    run(sols, args.size)
+    run(sols, args.size, args.animated_tiles)
 
 
 if __name__ == "__main__":
