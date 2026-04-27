@@ -336,7 +336,7 @@ def load_solutions(path: Path) -> list[list[list[int]]]:
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("-n", "--size", type=int, default=8)
-    p.add_argument("-s", "--solutions", default="solutions.jsonl")
+    p.add_argument("-s", "--solutions", default=None)
     p.add_argument(
         "--no-animated-tiles",
         dest="animated_tiles",
@@ -352,6 +352,8 @@ def main() -> None:
         help="Animate the next tiling's tiles in a spiral order toward the center.",
     )
     args = p.parse_args()
+    if args.solutions is None:
+        args.solutions = f"solutions_n{args.size}.jsonl"
 
     path = Path(args.solutions)
     if not path.exists():

@@ -163,6 +163,8 @@ def _worker(args) -> None:
     stop = [False]
 
     def on_solution(pl: list[tuple[int, int, int]]) -> None:
+        if found[0] >= max_per_worker:
+            return
         queue.put([list(t) for t in pl])
         found[0] += 1
         if max_per_worker is not None and found[0] >= max_per_worker:
@@ -252,7 +254,7 @@ def solve(
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("-n", "--size", type=int, default=8, help="Puzzle parameter N")
-    p.add_argument("-o", "--output", default="solutions.jsonl")
+    p.add_argument("-o", "--output", default=None)
     p.add_argument(
         "-m",
         "--max-solutions",
@@ -280,6 +282,8 @@ def main() -> None:
         help="Disable randomization (solutions will share long prefixes)",
     )
     args = p.parse_args()
+    if args.output is None:
+        args.output = f"solutions_n{args.size}.jsonl"
     solve(
         n=args.size,
         output=args.output,
