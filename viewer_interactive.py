@@ -85,6 +85,61 @@ def _pick_tile(pl: list[list[int]], wx: float, wy: float) -> int | None:
     return None
 
 
+def _spiral_tile_order(pl: list[list[int]], side: int) -> list[list[int]]:
+    """Return tiles in an outward-to-center spiral order.
+
+    The spiral path walks the side x side grid from the outer boundary toward
+    the center. A tile is added the first time the path encounters any of its
+    cells, so the final tile in the returned list is the one covering the
+    center of the board.
+    """
+    grid = [[-1] * side for _ in range(side)]
+    for idx, (k, r, c) in enumerate(pl):
+        for dr in range(k):
+            for dc in range(k):
+                grid[r + dr][c + dc] = idx
+
+    order: list[int] = []
+    seen: set[int] = set()
+    top = 0
+    bottom = side - 1
+    left = 0
+    right = side - 1
+
+    while left <= right and top <= bottom:
+        for x in range(left, right + 1):
+            idx = grid[top][x]
+            if idx not in seen:
+                seen.add(idx)
+                order.append(idx)
+        top += 1
+
+        for y in range(top, bottom + 1):
+            idx = grid[y][right]
+            if idx not in seen:
+                seen.add(idx)
+                order.append(idx)
+        right -= 1
+
+        if top <= bottom:
+            for x in range(right, left - 1, -1):
+                idx = grid[bottom][x]
+                if idx not in seen:
+                    seen.add(idx)
+                    order.append(idx)
+            bottom -= 1
+
+        if left <= right:
+            for y in range(bottom, top - 1, -1):
+                idx = grid[y][left]
+                if idx not in seen:
+                    seen.add(idx)
+                    order.append(idx)
+            left += 1
+
+    return [pl[idx] for idx in order]
+
+
 # ---------- rendering ----------
 
 
@@ -119,6 +174,7 @@ def render(
     hover_idx: int | None,
     progress: float = 1.0,
     animated_tiles: bool = True,
+    spiral_tiles: bool = False,
 ) -> None:
     vx, vy, vs = viewport
     screen_scale = WINDOW_SIZE / vs
@@ -135,7 +191,10 @@ def render(
         if anim is not None and idx == anim.target_idx:
             sub_scale = k / side
             if animated_tiles:
-                sorted_sub = sorted(anim.next_pl, key=lambda x: x[0], reverse=True)
+                if spiral_tiles:
+                    sorted_sub = _spiral_tile_order(anim.next_pl, side)
+                else:
+                    sorted_sub = sorted(anim.next_pl, key=lambda x: x[0], reverse=True)
                 num_to_draw = int(progress * len(sorted_sub))
                 for k2, r2, c2 in sorted_sub[:num_to_draw]:
                     _draw_tile(
@@ -159,7 +218,12 @@ def render(
 # ---------- main loop ----------
 
 
-def run(solutions: list[list[list[int]]], n: int, animated_tiles: bool) -> None:
+def run(
+    solutions: list[list[list[int]]],
+    n: int,
+    animated_tiles: bool,
+    spiral_tiles: bool,
+) -> None:
     pygame.init()
     pygame.display.set_caption(f"Partridge N={n}")
     screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
@@ -255,6 +319,7 @@ def run(solutions: list[list[list[int]]], n: int, animated_tiles: bool) -> None:
             hover_idx,
             progress,
             animated_tiles,
+            spiral_tiles,
         )
         screen.blit(grid_overlay, (0, 0))
         pygame.display.flip()
@@ -279,6 +344,13 @@ def main() -> None:
         default=True,
         help="Disable progressive tile appearance during zooms.",
     )
+    p.add_argument(
+        "--spiral-tiles",
+        dest="spiral_tiles",
+        action="store_true",
+        default=False,
+        help="Animate the next tiling's tiles in a spiral order toward the center.",
+    )
     args = p.parse_args()
 
     path = Path(args.solutions)
@@ -294,7 +366,7 @@ def main() -> None:
         )
         sys.exit(1)
 
-    run(sols, args.size, args.animated_tiles)
+    run(sols, args.size, args.animated_tiles, args.spiral_tiles)
 
 
 if __name__ == "__main__":

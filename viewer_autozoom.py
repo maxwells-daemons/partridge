@@ -75,6 +75,7 @@ def run(
     n: int,
     seed: int | None,
     animated_tiles: bool,
+    spiral_tiles: bool,
 ) -> None:
     pygame.init()
     pygame.display.set_caption(f"Partridge auto N={n}")
@@ -166,6 +167,7 @@ def run(
             hover_idx=None,
             progress=t_clamped,
             animated_tiles=animated_tiles,
+            spiral_tiles=spiral_tiles,
         )
         screen.blit(grid_overlay, (0, 0))
         pygame.display.flip()
@@ -186,6 +188,13 @@ def main() -> None:
         default=True,
         help="Disable progressive tile appearance during zooms.",
     )
+    p.add_argument(
+        "--spiral-tiles",
+        dest="spiral_tiles",
+        action="store_true",
+        default=False,
+        help="Animate the next tiling's tiles in a spiral order toward the center.",
+    )
     args = p.parse_args()
 
     path = Path(args.solutions)
@@ -200,7 +209,7 @@ def main() -> None:
     sols = expand_symmetries(sols, args.size)
     print(f"Loaded {len(sols)} tilings (including symmetries)", file=sys.stderr)
 
-    run(sols, args.size, args.seed, args.animated_tiles)
+    run(sols, args.size, args.seed, args.animated_tiles, args.spiral_tiles)
 
 
 if __name__ == "__main__":
